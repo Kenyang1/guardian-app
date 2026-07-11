@@ -8,7 +8,8 @@ import Dashboard from '@/components/dashboard';
 import Viewers from '@/components/viewers';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Layout, Radii, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 /**
  * Signed-in shell: a simple bottom tab bar switching between the app's
@@ -17,6 +18,9 @@ import { Spacing } from '@/constants/theme';
 
 const TABS = ['Dashboard', 'Add', 'Budgets', 'Viewers'] as const;
 type Tab = (typeof TABS)[number];
+const TAB_META: Record<Tab, { icon: string; label: string }> = {
+  Dashboard: { icon: '⌂', label: 'Home' }, Add: { icon: '+', label: 'Add' }, Budgets: { icon: '▣', label: 'Budgets' }, Viewers: { icon: '♙', label: 'Viewers' },
+};
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -28,6 +32,7 @@ function Placeholder({ name }: { name: string }) {
 }
 
 export default function MainTabs() {
+  const theme = useTheme();
   const [tab, setTab] = useState<Tab>('Dashboard');
 
   return (
@@ -43,12 +48,11 @@ export default function MainTabs() {
           <Viewers />
         )}
       </View>
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: theme.tabBar, borderTopColor: theme.border }]}>
         {TABS.map((t) => (
           <TouchableOpacity key={t} style={styles.tabButton} onPress={() => setTab(t)}>
-            <ThemedText type={tab === t ? 'smallBold' : 'small'} style={tab === t ? styles.active : styles.inactive}>
-              {t}
-            </ThemedText>
+            <View style={[styles.iconWrap, t === 'Add' && { backgroundColor: theme.primary }, tab === t && t !== 'Add' && { backgroundColor: theme.primaryStrong }]}><ThemedText style={[styles.icon, { color: tab === t ? (t === 'Add' ? theme.primaryStrong : theme.primary) : theme.textSecondary }]}>{TAB_META[t].icon}</ThemedText></View>
+            <ThemedText type={tab === t ? 'smallBold' : 'small'} style={{ color: tab === t ? theme.primary : theme.textSecondary }}>{TAB_META[t].label}</ThemedText>
           </TouchableOpacity>
         ))}
       </View>
@@ -66,19 +70,15 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(128,128,128,0.4)',
+    minHeight: Layout.tabHeight,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.two,
+    gap: Spacing.one,
   },
-  active: {
-    opacity: 1,
-  },
-  inactive: {
-    opacity: 0.55,
-  },
+  iconWrap: { width: 38, height: 34, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' }, icon: { fontSize: 24, lineHeight: 28, fontWeight: '800' },
   placeholder: {
     flex: 1,
     justifyContent: 'center',
