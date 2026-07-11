@@ -26,7 +26,7 @@ import { CATEGORY_NAMES } from '@/schemas/budget';
 
 const todayIso = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-export default function AddTransaction() {
+export default function AddTransaction({ onClose }: { onClose?: () => void }) {
   const theme = useTheme();
   const [amount, setAmount] = useState(''); // dollars as typed, e.g. "5.75"
   const [merchant, setMerchant] = useState('');
@@ -113,7 +113,7 @@ export default function AddTransaction() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        <View style={styles.topBar}><ThemedText style={[styles.guardian, { color: theme.primary }]}>♢ Guardian</ThemedText><ThemedText style={styles.bell}>♧</ThemedText></View>
+        <View style={styles.topBar}><ThemedText style={[styles.guardian, { color: theme.primary }]}>♢ Guardian</ThemedText>{onClose ? <Pressable accessibilityRole="button" onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.closePressed]}><ThemedText style={styles.closeText}>×</ThemedText></Pressable> : <ThemedText style={styles.bell}>♧</ThemedText>}</View>
         <View style={[styles.hero, { backgroundColor: theme.surface }]}><View style={[styles.handle, { backgroundColor: theme.border }]} /><ThemedText style={styles.sheetTitle}>Add Transaction</ThemedText><View style={styles.amountRow}><ThemedText style={[styles.currency, { color: theme.textSecondary }]}>$</ThemedText>
         <TextInput
           placeholder="0.00"
@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   topBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, guardian: { ...Type.heading, fontSize: 21 }, bell: { fontSize: 22 },
+  closeButton: { width: 40, height: 40, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' }, closePressed: { opacity: 0.6, transform: [{ scale: 0.92 }] }, closeText: { fontSize: 30, lineHeight: 34 },
   hero: { alignItems: 'center', gap: Spacing.one, paddingTop: Spacing.two, paddingBottom: Spacing.three, borderTopLeftRadius: Radii.large, borderTopRightRadius: Radii.large }, handle: { width: 44, height: 4, borderRadius: Radii.pill }, sheetTitle: { ...Type.label, paddingVertical: Spacing.one }, amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.one }, currency: { ...Type.display, lineHeight: 48 }, amountInput: { ...Type.display, width: 142, textAlign: 'left', padding: 0, margin: 0 },
   card: { borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: Radii.large, borderBottomRightRadius: Radii.large, padding: Spacing.three, gap: Spacing.sm }, label: { ...Type.heading, fontSize: 16 },
   input: {
