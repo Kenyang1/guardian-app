@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AddTransaction from '@/components/add-transaction';
+import Budgets from '@/components/budgets';
 import Dashboard from '@/components/dashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -36,7 +37,7 @@ export default function MainTabs() {
         ) : tab === 'Add' ? (
           <AddTransaction />
         ) : tab === 'Budgets' ? (
-          <Placeholder name="Budgets" />
+          <Budgets />
         ) : (
           <Placeholder name="Trusted viewers" />
         )}
