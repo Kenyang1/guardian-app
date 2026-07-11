@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -11,7 +11,8 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Layout, Radii, Spacing, Type } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { ApiError, categorizeMerchant, createTransaction } from '@/lib/api';
 import { CATEGORY_NAMES } from '@/schemas/budget';
 
@@ -26,6 +27,7 @@ import { CATEGORY_NAMES } from '@/schemas/budget';
 const todayIso = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
 export default function AddTransaction() {
+  const theme = useTheme();
   const [amount, setAmount] = useState(''); // dollars as typed, e.g. "5.75"
   const [merchant, setMerchant] = useState('');
   const [date, setDate] = useState(todayIso());
@@ -111,71 +113,56 @@ export default function AddTransaction() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        <ThemedText type="title">Add transaction</ThemedText>
-
+        <View style={styles.hero}><ThemedText style={styles.amountLabel}>Amount</ThemedText><View style={styles.amountRow}><ThemedText style={[styles.currency, { color: theme.textSecondary }]}>$</ThemedText>
         <TextInput
-          placeholder="Amount (e.g. 5.75)"
+          placeholder="0.00"
+          placeholderTextColor={theme.primary}
           keyboardType="decimal-pad"
           value={amount}
           onChangeText={setAmount}
-          style={styles.input}
-        />
+          style={[styles.amountInput, { color: theme.primary }]}
+        /></View></View>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <ThemedText style={styles.label}>Merchant Name</ThemedText>
         <TextInput
-          placeholder="Merchant (as it appears on your statement)"
+          placeholder="DUNKIN #341782"
+          placeholderTextColor={theme.textSecondary}
           autoCapitalize="characters"
           value={merchant}
           onChangeText={setMerchant}
-          style={styles.input}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
         />
+        <View style={styles.suggestionHeader}>
+          <ThemedText style={styles.label}>Category</ThemedText>
+          {suggesting ? <ActivityIndicator size="small" /> : suggestion ? <ThemedText type="small">{overridden ? 'MANUAL OVERRIDE' : `SUGGESTED (${suggestion.source})`}</ThemedText> : null}
+        </View>
+        <View style={styles.chips}>
+          {Object.entries(CATEGORY_NAMES).map(([id, name]) => { const catId = Number(id); const selected = selectedId === catId; return <TouchableOpacity key={id} onPress={() => setSelectedId(catId)} style={[styles.chip, { borderColor: theme.border }, selected && { backgroundColor: theme.primaryStrong, borderColor: theme.primary }]}><ThemedText type="small" style={selected ? { color: theme.primary } : undefined}>{name}</ThemedText></TouchableOpacity>; })}
+        </View>
+        <ThemedText style={styles.label}>Date</ThemedText>
         <TextInput
           placeholder="Date (YYYY-MM-DD)"
           value={date}
           onChangeText={setDate}
-          style={styles.input}
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
         />
+        <ThemedText style={styles.label}>Note (Optional)</ThemedText>
         <TextInput
           placeholder="Note (optional)"
           value={note}
           onChangeText={setNote}
-          style={styles.input}
+          placeholderTextColor={theme.textSecondary}
+          multiline
+          style={[styles.input, styles.note, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
         />
-
-        <View style={styles.suggestionHeader}>
-          <ThemedText type="smallBold">Category</ThemedText>
-          {suggesting ? (
-            <ActivityIndicator size="small" />
-          ) : suggestion ? (
-            <ThemedText type="small">
-              {overridden ? 'manual override' : `suggested (${suggestion.source})`}
-            </ThemedText>
-          ) : null}
         </View>
+        <View style={[styles.hintBox, { backgroundColor: theme.primaryStrong, borderColor: theme.border }]}><ThemedText type="small">ⓘ Leave the suggested chip selected and the server categorizes automatically.</ThemedText></View>
 
-        <View style={styles.chips}>
-          {Object.entries(CATEGORY_NAMES).map(([id, name]) => {
-            const catId = Number(id);
-            const selected = selectedId === catId;
-            return (
-              <TouchableOpacity
-                key={id}
-                onPress={() => setSelectedId(catId)}
-                style={[styles.chip, selected && styles.chipSelected]}
-              >
-                <ThemedText type="small" style={selected ? styles.chipTextSelected : undefined}>
-                  {name}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <ThemedText type="small" style={styles.hint}>
-          Leave the suggested chip selected and the server categorizes automatically.
-        </ThemedText>
+        {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
+        {success ? <ThemedText style={{ color: theme.success }}>{success}</ThemedText> : null}
 
-        {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
-        {success ? <ThemedText style={styles.success}>{success}</ThemedText> : null}
-
-        {busy ? <ActivityIndicator /> : <Button title="Save transaction" onPress={submit} />}
+        <Pressable disabled={busy} onPress={submit} style={[styles.button, { backgroundColor: theme.primary }]}>{busy ? <ActivityIndicator color={theme.primaryStrong} /> : <ThemedText style={[styles.buttonText, { color: theme.primaryStrong }]}>Save transaction</ThemedText>}</Pressable>
       </ScrollView>
     </ThemedView>
   );
@@ -187,14 +174,16 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: Spacing.four,
-    gap: Spacing.three,
+    gap: Spacing.four,
   },
+  hero: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.four }, amountLabel: { ...Type.heading }, amountRow: { flexDirection: 'row', alignItems: 'center' }, currency: { ...Type.display }, amountInput: { ...Type.display, minWidth: 180, textAlign: 'center' },
+  card: { borderRadius: Radii.card, padding: Spacing.four, gap: Spacing.three }, label: { ...Type.heading, fontSize: 20 },
   input: {
     borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: Radii.input,
+    paddingHorizontal: Spacing.three,
+    minHeight: Layout.controlHeight,
+    ...Type.body,
   },
   suggestionHeader: {
     flexDirection: 'row',
@@ -213,20 +202,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#999',
   },
-  chipSelected: {
-    backgroundColor: '#3D8BD9',
-    borderColor: '#3D8BD9',
-  },
-  chipTextSelected: {
-    color: '#fff',
-  },
-  hint: {
-    opacity: 0.7,
-  },
-  error: {
-    color: '#D64545',
-  },
-  success: {
-    color: '#2E8B57',
-  },
+  note: { minHeight: 96, paddingTop: Spacing.three, textAlignVertical: 'top' },
+  hintBox: { borderWidth: 1, borderRadius: Radii.input, padding: Spacing.three },
+  button: { minHeight: Layout.controlHeight, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' }, buttonText: { ...Type.heading },
 });
