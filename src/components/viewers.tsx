@@ -247,7 +247,7 @@ export default function Viewers() {
 function GuardianButton({ label, onPress, variant }: { label: string; onPress: () => void; variant: 'primary' | 'outline' | 'danger' }) {
   const theme = useTheme();
   const primary = variant === 'primary'; const danger = variant === 'danger';
-  return <Pressable onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: primary ? theme.primary : danger ? theme.dangerSurface : 'transparent', borderColor: danger ? theme.danger : theme.primary }, pressed && styles.actionPressed]}><ThemedText type="smallBold" style={{ color: primary ? theme.primaryStrong : danger ? theme.danger : theme.primary }}>{label}</ThemedText></Pressable>;
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: primary ? theme.primary : danger ? theme.dangerSurface : theme.backgroundSelected, borderColor: danger ? theme.danger : theme.primary }, pressed && styles.actionPressed]}><ThemedText type="smallBold" style={{ color: primary ? theme.primaryStrong : danger ? theme.danger : theme.primary }}>{label}</ThemedText></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -319,6 +319,6 @@ const styles = StyleSheet.create({
   hint: {
     opacity: 0.7,
   },
-  actionButton: { minHeight: 44, paddingHorizontal: Spacing.three, borderWidth: 1, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' },
+  actionButton: { minHeight: 46, paddingHorizontal: Spacing.three, borderWidth: 1, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
   actionPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] },
 });
