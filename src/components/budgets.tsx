@@ -12,7 +12,8 @@ import {
 import { currentMonth, shiftMonth } from '@/components/dashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Layout, Radii, Spacing, Type } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { ApiError, listBudgets, setBudget } from '@/lib/api';
 import { CATEGORY_NAMES, type Budget } from '@/schemas/budget';
 
@@ -31,6 +32,7 @@ const monthLabel = (month: string) => {
 };
 
 export default function Budgets() {
+  const theme = useTheme();
   const [month, setMonth] = useState(currentMonth());
   const [budgets, setBudgets] = useState<Budget[] | null>(null);
   const [error, setError] = useState('');
@@ -96,11 +98,11 @@ export default function Budgets() {
     <ThemedView style={styles.container}>
       <View style={styles.monthSwitcher}>
         <TouchableOpacity onPress={() => setMonth((m) => shiftMonth(m, -1))} hitSlop={12}>
-          <ThemedText type="title">{'‹'}</ThemedText>
+          <ThemedText style={styles.chevron}>‹</ThemedText>
         </TouchableOpacity>
-        <ThemedText type="subtitle">{monthLabel(month)}</ThemedText>
+        <View style={styles.headingCopy}><ThemedText style={[styles.title, { color: theme.primary }]}>Budgets</ThemedText><ThemedText>Manage your spending limits for {monthLabel(month)}</ThemedText></View>
         <TouchableOpacity onPress={() => setMonth((m) => shiftMonth(m, 1))} hitSlop={12}>
-          <ThemedText type="title">{'›'}</ThemedText>
+          <ThemedText style={styles.chevron}>›</ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -109,7 +111,7 @@ export default function Budgets() {
           <ActivityIndicator />
         ) : (
           <>
-            <ThemedText type="smallBold">Tap a category to set its monthly limit</ThemedText>
+            <View style={[styles.editorCard, { backgroundColor: theme.surface }]}><ThemedText style={[styles.sectionTitle, { color: theme.primary }]}>⊕ Set New Budget</ThemedText><ThemedText type="smallBold">Select Category</ThemedText>
             <View style={styles.chips}>
               {Object.entries(CATEGORY_NAMES).map(([id, name]) => {
                 const catId = Number(id);
@@ -119,9 +121,9 @@ export default function Budgets() {
                   <TouchableOpacity
                     key={id}
                     onPress={() => pick(catId)}
-                    style={[styles.chip, selected && styles.chipSelected]}
+                    style={[styles.chip, { borderColor: theme.border }, selected && { backgroundColor: theme.primaryStrong, borderColor: theme.primary }]}
                   >
-                    <ThemedText type="small" style={selected ? styles.chipTextSelected : undefined}>
+                    <ThemedText type="small" style={selected ? { color: theme.primary } : undefined}>
                       {name}
                       {existing ? ` · ${dollars(existing.limitCents)}` : ''}
                     </ThemedText>
@@ -141,19 +143,20 @@ export default function Budgets() {
                   keyboardType="decimal-pad"
                   value={limit}
                   onChangeText={setLimit}
-                  style={styles.input}
+                  placeholderTextColor={theme.textSecondary}
+                  style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
                   autoFocus
                 />
                 {saving ? (
                   <ActivityIndicator />
                 ) : (
-                  <Button title="Set budget" onPress={save} />
+                  <Button title={existingFor(categoryId) ? 'Replace budget' : 'Set budget'} onPress={save} color={theme.primaryStrong} />
                 )}
               </View>
-            ) : null}
+            ) : null}</View>
 
-            {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
-            {saved ? <ThemedText style={styles.success}>{saved}</ThemedText> : null}
+            {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
+            {saved ? <ThemedText style={{ color: theme.success }}>{saved}</ThemedText> : null}
 
             {budgets !== null && budgets.length === 0 ? (
               <ThemedText style={styles.hint}>
@@ -179,6 +182,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.three,
   },
+  headingCopy: { flex: 1, alignItems: 'center' }, title: { ...Type.title }, chevron: { ...Type.title },
   list: {
     paddingHorizontal: Spacing.four,
     gap: Spacing.three,
@@ -194,31 +198,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#999',
   },
-  chipSelected: {
-    backgroundColor: '#3D8BD9',
-    borderColor: '#3D8BD9',
-  },
-  chipTextSelected: {
-    color: '#fff',
-  },
+  editorCard: { padding: Spacing.four, borderRadius: Radii.card, gap: Spacing.three }, sectionTitle: { ...Type.heading },
   editor: {
     gap: Spacing.three,
     paddingTop: Spacing.two,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  error: {
-    color: '#D64545',
-  },
-  success: {
-    color: '#2E8B57',
+    borderRadius: Radii.input,
+    minHeight: Layout.controlHeight,
+    paddingHorizontal: Spacing.three,
+    ...Type.body,
   },
   hint: {
     opacity: 0.7,
