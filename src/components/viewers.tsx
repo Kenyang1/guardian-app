@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { FadeInUp, LinearTransition } from 'react-native-reanimated';
 
 import { CategoryRow, currentMonth } from '@/components/dashboard';
 import { ThemedText } from '@/components/themed-text';
@@ -103,7 +104,7 @@ export default function Viewers() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.sharedHeader}>
-          <Button title="< Back" onPress={() => setViewing(null)} />
+          <GuardianButton label="‹ Back" variant="outline" onPress={() => setViewing(null)} />
           <View style={[styles.readOnlyBadge, { backgroundColor: theme.warning }]}>
             <ThemedText type="smallBold" style={{ color: theme.primaryStrong }}>
               READ ONLY
@@ -142,8 +143,9 @@ export default function Viewers() {
           style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
         />
         <ThemedText type="small" style={styles.hint}>Invited users can only view your spending; they cannot edit transactions.</ThemedText></View>
-        <Button
-          title="Send invite"
+        <GuardianButton
+          label="✉  Send Invite"
+          variant="primary"
           onPress={() =>
             run(async () => {
               await inviteViewer(inviteEmail.trim());
@@ -158,7 +160,7 @@ export default function Viewers() {
           <View style={styles.section}>
             <ThemedText style={[styles.sectionTitle, { color: theme.primary }]}>My Trusted Viewers</ThemedText>
             {mine.map((v) => (
-              <View key={v.id} style={[styles.viewerRow, { backgroundColor: theme.surface }]}>
+              <Animated.View key={v.id} entering={FadeInUp.duration(220)} layout={LinearTransition} style={[styles.viewerRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.viewerInfo}>
                   <ThemedText>{v.viewerEmail}</ThemedText>
                   <ThemedText type="small" style={{ color: statusColors[v.status] }}>
@@ -173,19 +175,19 @@ export default function Viewers() {
                 </View>
                 {v.status !== 'revoked' ? (
                   confirmingId === v.id ? (
-                    <Button
-                      title="Confirm revoke"
-                      color={theme.danger}
+                    <GuardianButton
+                      label="Confirm"
+                      variant="danger"
                       onPress={() => {
                         setConfirmingId(null);
                         run(() => revokeViewer(v.id), `Revoked ${v.viewerEmail}`);
                       }}
                     />
                   ) : (
-                    <Button title="Revoke" onPress={() => setConfirmingId(v.id)} />
+                    <GuardianButton label="Revoke" variant="outline" onPress={() => setConfirmingId(v.id)} />
                   )
                 ) : null}
-              </View>
+              </Animated.View>
             ))}
           </View>
         ) : null}
@@ -200,8 +202,9 @@ export default function Viewers() {
           placeholderTextColor={theme.textSecondary}
           style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
           />
-          <Button
-            title="Accept invite"
+          <GuardianButton
+            label="Accept Invite"
+            variant="primary"
             onPress={() =>
               run(async () => {
                 await acceptInvite(inviteCode.trim());
@@ -241,6 +244,12 @@ export default function Viewers() {
   );
 }
 
+function GuardianButton({ label, onPress, variant }: { label: string; onPress: () => void; variant: 'primary' | 'outline' | 'danger' }) {
+  const theme = useTheme();
+  const primary = variant === 'primary'; const danger = variant === 'danger';
+  return <Pressable onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: primary ? theme.primary : danger ? theme.dangerSurface : 'transparent', borderColor: danger ? theme.danger : theme.primary }, pressed && styles.actionPressed]}><ThemedText type="smallBold" style={{ color: primary ? theme.primaryStrong : danger ? theme.danger : theme.primary }}>{label}</ThemedText></Pressable>;
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -274,6 +283,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     padding: Spacing.three,
     borderRadius: Radii.card,
+    borderWidth: 1,
   },
   viewerInfo: {
     flex: 1,
@@ -309,4 +319,6 @@ const styles = StyleSheet.create({
   hint: {
     opacity: 0.7,
   },
+  actionButton: { minHeight: 44, paddingHorizontal: Spacing.three, borderWidth: 1, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' },
+  actionPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] },
 });
