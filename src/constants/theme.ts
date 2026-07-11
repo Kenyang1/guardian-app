@@ -1,52 +1,52 @@
 import { Platform } from 'react-native';
 
 const shared = {
-  primary: '#A5D0B9',
-  primaryStrong: '#1B4332',
-  primaryMuted: '#86AF99',
-  danger: '#FFB4AB',
-  dangerSurface: '#3A1012',
-  warning: '#E7C875',
-  success: '#A5D0B9',
+  primary: '#72E6B1',
+  primaryStrong: '#063F2F',
+  primaryMuted: '#8CB7A4',
+  danger: '#E56B67',
+  dangerSurface: '#351515',
+  warning: '#DDBB63',
+  success: '#72E6B1',
   white: '#FFFFFF',
 } as const;
 
 export const Colors = {
   light: {
     ...shared,
-    text: '#18211D',
-    textSecondary: '#5C6861',
-    background: '#F4F7F5',
+    text: '#15201B',
+    textSecondary: '#68716C',
+    background: '#F8F6F1',
     backgroundElement: '#FFFFFF',
-    backgroundSelected: '#DDEBE3',
+    backgroundSelected: '#E4F7EE',
     surface: '#FFFFFF',
-    surfaceRaised: '#EDF2EF',
-    input: '#F7F9F8',
-    border: '#D2DDD6',
-    track: '#E3E9E5',
+    surfaceRaised: '#F2F0EB',
+    input: '#FBFAF7',
+    border: '#DDDAD3',
+    track: '#E8E5DF',
     tabBar: '#FFFFFF',
   },
   dark: {
     ...shared,
-    text: '#E5E2E1',
-    textSecondary: '#C1C8C2',
-    background: '#131313',
-    backgroundElement: '#201F1F',
-    backgroundSelected: '#2A2A2A',
-    surface: '#201F1F',
-    surfaceRaised: '#2A2A2A',
-    input: '#353534',
-    border: '#414844',
-    track: '#2A2A2A',
-    tabBar: '#1C1B1B',
+    text: '#F4F6F5',
+    textSecondary: '#A7AFAB',
+    background: '#090D0C',
+    backgroundElement: '#151A18',
+    backgroundSelected: '#17362B',
+    surface: '#171C1A',
+    surfaceRaised: '#202623',
+    input: '#202623',
+    border: '#303834',
+    track: '#343B38',
+    tabBar: '#111614',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const CategoryColors: Record<number, string> = {
-  1: '#A5D0B9', 2: '#86AF99', 3: '#BACAC1', 4: '#6F9D87', 5: '#E7C875',
-  6: '#E89A94', 7: '#9CB7AA', 8: '#86C5A6', 9: '#62AF88', 10: '#9AAAA2',
+  1: '#72E6B1', 2: '#82C8A5', 3: '#66B7DF', 4: '#6F9D87', 5: '#DDBB63',
+  6: '#D889AF', 7: '#9B8DD6', 8: '#86C5A6', 9: '#5FC595', 10: '#8E9792',
 };
 
 export const Fonts = Platform.select({

@@ -113,7 +113,8 @@ export default function AddTransaction() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}><ThemedText style={styles.amountLabel}>Amount</ThemedText><View style={styles.amountRow}><ThemedText style={[styles.currency, { color: theme.textSecondary }]}>$</ThemedText>
+        <View style={styles.topBar}><ThemedText style={[styles.guardian, { color: theme.primary }]}>♢ Guardian</ThemedText><ThemedText style={styles.bell}>♧</ThemedText></View>
+        <View style={[styles.hero, { backgroundColor: theme.surface }]}><View style={[styles.handle, { backgroundColor: theme.border }]} /><ThemedText style={styles.sheetTitle}>Add Transaction</ThemedText><View style={styles.amountRow}><ThemedText style={[styles.currency, { color: theme.textSecondary }]}>$</ThemedText>
         <TextInput
           placeholder="0.00"
           placeholderTextColor={theme.primary}
@@ -179,8 +180,9 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.four,
   },
-  hero: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.four }, amountLabel: { ...Type.heading }, amountRow: { flexDirection: 'row', alignItems: 'center' }, currency: { ...Type.display }, amountInput: { ...Type.display, minWidth: 180, textAlign: 'center' },
-  card: { borderRadius: Radii.large, padding: Spacing.four, gap: Spacing.three }, label: { ...Type.heading, fontSize: 18 },
+  topBar: { minHeight: 72, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, guardian: { ...Type.heading, fontSize: 21 }, bell: { fontSize: 22 },
+  hero: { alignItems: 'center', gap: Spacing.two, paddingTop: Spacing.two, paddingBottom: Spacing.four, borderTopLeftRadius: Radii.large, borderTopRightRadius: Radii.large }, handle: { width: 44, height: 4, borderRadius: Radii.pill }, sheetTitle: { ...Type.label, paddingVertical: Spacing.two }, amountRow: { flexDirection: 'row', alignItems: 'center' }, currency: { ...Type.display }, amountInput: { ...Type.display, minWidth: 180, textAlign: 'center' },
+  card: { borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: Radii.large, borderBottomRightRadius: Radii.large, padding: Spacing.four, gap: Spacing.three }, label: { ...Type.heading, fontSize: 16 },
   input: {
     borderWidth: 1,
     borderRadius: Radii.input,

@@ -1,223 +1,35 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { currentMonth, shiftMonth } from '@/components/dashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Layout, Radii, Spacing, Type } from '@/constants/theme';
+import { CategoryColors, Layout, Radii, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { ApiError, listBudgets, setBudget } from '@/lib/api';
-import { CATEGORY_NAMES, type Budget } from '@/schemas/budget';
+import { ApiError, getMonthlyInsights, listBudgets, setBudget } from '@/lib/api';
+import { CATEGORY_NAMES, type Budget, type InsightRow } from '@/schemas/budget';
 
-/**
- * Budgets screen: see this month's limits and set new ones. POST /budgets is
- * an upsert, so "setting" a category that already has a budget REPLACES its
- * limit - the button says Set, never Add, on purpose.
- */
-
-const dollars = (cents: number) =>
-  (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-
-const monthLabel = (month: string) => {
-  const [y, m] = month.split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
+const dollars = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const monthLabel = (month: string) => { const [y, m] = month.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
 
 export default function Budgets() {
-  const theme = useTheme();
-  const [month, setMonth] = useState(currentMonth());
-  const [budgets, setBudgets] = useState<Budget[] | null>(null);
-  const [error, setError] = useState('');
-
-  // The editor: which category is being set, and the limit typed so far.
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [limit, setLimit] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState('');
-
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const result = await listBudgets(month);
-      setBudgets(result.items);
-    } catch (e) {
-      setBudgets(null);
-      setError(e instanceof ApiError ? e.message : 'Could not reach the server');
-    }
-  }, [month]);
-
-  useEffect(() => {
-    setBudgets(null);
-    setSaved('');
-    load();
-  }, [load]);
-
-  const existingFor = (id: number) => budgets?.find((b) => b.categoryId === id);
-
-  // Tapping a category chip opens the editor, pre-filled with its current
-  // limit if one exists - "edit" and "create" are the same gesture.
-  const pick = (id: number) => {
-    setCategoryId(id);
-    setSaved('');
-    const existing = existingFor(id);
-    setLimit(existing ? (existing.limitCents / 100).toFixed(2) : '');
-  };
-
-  const save = async () => {
-    if (categoryId === null) return;
-    setError('');
-    setSaved('');
-    const limitCents = Math.round(Number(limit) * 100);
-    if (!Number.isInteger(limitCents) || limitCents <= 0) {
-      setError('Enter a positive limit, like 250 or 99.50');
-      return;
-    }
-    setSaving(true);
-    try {
-      await setBudget({ categoryId, month, limitCents });
-      setSaved(`${CATEGORY_NAMES[categoryId]} set to ${dollars(limitCents)} for ${monthLabel(month)}`);
-      setCategoryId(null);
-      setLimit('');
-      await load();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not reach the server');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <ThemedView style={styles.container}>
-      <View style={styles.monthSwitcher}>
-        <TouchableOpacity onPress={() => setMonth((m) => shiftMonth(m, -1))} hitSlop={12}>
-          <ThemedText style={styles.chevron}>‹</ThemedText>
-        </TouchableOpacity>
-        <View style={styles.headingCopy}><ThemedText style={[styles.title, { color: theme.primary }]}>Budgets</ThemedText><ThemedText>Manage your spending limits for {monthLabel(month)}</ThemedText></View>
-        <TouchableOpacity onPress={() => setMonth((m) => shiftMonth(m, 1))} hitSlop={12}>
-          <ThemedText style={styles.chevron}>›</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-        {budgets === null && !error ? (
-          <ActivityIndicator />
-        ) : (
-          <>
-            <View style={[styles.editorCard, { backgroundColor: theme.surface }]}><ThemedText style={[styles.sectionTitle, { color: theme.primary }]}>⊕ Set New Budget</ThemedText><ThemedText type="smallBold">Select Category</ThemedText>
-            <View style={styles.chips}>
-              {Object.entries(CATEGORY_NAMES).map(([id, name]) => {
-                const catId = Number(id);
-                const existing = existingFor(catId);
-                const selected = categoryId === catId;
-                return (
-                  <TouchableOpacity
-                    key={id}
-                    onPress={() => pick(catId)}
-                    style={[styles.chip, { borderColor: theme.border }, selected && { backgroundColor: theme.primaryStrong, borderColor: theme.primary }]}
-                  >
-                    <ThemedText type="small" style={selected ? { color: theme.primary } : undefined}>
-                      {name}
-                      {existing ? ` · ${dollars(existing.limitCents)}` : ''}
-                    </ThemedText>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {categoryId !== null ? (
-              <View style={styles.editor}>
-                <ThemedText type="smallBold">
-                  {existingFor(categoryId) ? 'Replace' : 'Set'} {CATEGORY_NAMES[categoryId]} limit for{' '}
-                  {monthLabel(month)}
-                </ThemedText>
-                <TextInput
-                  placeholder="Limit in dollars (e.g. 250)"
-                  keyboardType="decimal-pad"
-                  value={limit}
-                  onChangeText={setLimit}
-                  placeholderTextColor={theme.textSecondary}
-                  style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
-                  autoFocus
-                />
-                {saving ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Button title={existingFor(categoryId) ? 'Replace budget' : 'Set budget'} onPress={save} color={theme.primaryStrong} />
-                )}
-              </View>
-            ) : null}</View>
-
-            {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
-            {saved ? <ThemedText style={{ color: theme.success }}>{saved}</ThemedText> : null}
-
-            {budgets !== null && budgets.length === 0 ? (
-              <ThemedText style={styles.hint}>
-                No budgets for {monthLabel(month)} yet - your dashboard is empty until you set one.
-              </ThemedText>
-            ) : null}
-          </>
-        )}
-      </ScrollView>
-    </ThemedView>
-  );
+  const theme = useTheme(); const { width } = useWindowDimensions(); const desktop = width >= 900;
+  const [month, setMonth] = useState(currentMonth()); const [budgets, setBudgets] = useState<Budget[] | null>(null); const [insights, setInsights] = useState<InsightRow[]>([]); const [error, setError] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null); const [limit, setLimit] = useState(''); const [saving, setSaving] = useState(false); const [saved, setSaved] = useState(''); const [showEditor, setShowEditor] = useState(false);
+  const load = useCallback(async () => { setError(''); try { const [budgetResult, insightResult] = await Promise.all([listBudgets(month), getMonthlyInsights(month)]); setBudgets(budgetResult.items); setInsights(insightResult.categories); } catch (e) { setBudgets(null); setError(e instanceof ApiError ? e.message : 'Could not reach the server'); } }, [month]);
+  useEffect(() => { setBudgets(null); setSaved(''); load(); }, [load]);
+  const existingFor = (id: number) => budgets?.find((b) => b.categoryId === id); const insightFor = (id: number) => insights.find((row) => row.categoryId === id);
+  const pick = (id: number) => { setCategoryId(id); setShowEditor(true); setSaved(''); const existing = existingFor(id); setLimit(existing ? (existing.limitCents / 100).toFixed(2) : ''); };
+  const save = async () => { if (categoryId === null) return; setError(''); setSaved(''); const limitCents = Math.round(Number(limit) * 100); if (!Number.isInteger(limitCents) || limitCents <= 0) { setError('Enter a positive limit, like 250 or 99.50'); return; } setSaving(true); try { await setBudget({ categoryId, month, limitCents }); setSaved(`${CATEGORY_NAMES[categoryId]} set to ${dollars(limitCents)}`); setCategoryId(null); setLimit(''); setShowEditor(false); await load(); } catch (e) { setError(e instanceof ApiError ? e.message : 'Could not reach the server'); } finally { setSaving(false); } };
+  const totalLimit = budgets?.reduce((sum, item) => sum + item.limitCents, 0) ?? 0; const totalSpent = insights.reduce((sum, item) => sum + item.spentCents, 0); const fraction = totalLimit ? Math.min(totalSpent / totalLimit, 1) : 0;
+  return <ThemedView style={styles.root}><ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, desktop && styles.webContent]}>
+    <View style={styles.header}><View><ThemedText style={styles.title}>Budgets</ThemedText><ThemedText type="small">Manage limits without the clutter.</ThemedText></View><View style={styles.monthNav}><Pressable onPress={() => setMonth((m) => shiftMonth(m, -1))}><ThemedText style={styles.chevron}>‹</ThemedText></Pressable><ThemedText type="smallBold">{monthLabel(month)}</ThemedText><Pressable onPress={() => setMonth((m) => shiftMonth(m, 1))}><ThemedText style={styles.chevron}>›</ThemedText></Pressable></View></View>
+    {budgets === null && !error ? <ActivityIndicator /> : <>
+      <View style={[styles.summary, { backgroundColor: theme.primaryStrong, borderColor: theme.border }]}><View><ThemedText style={{ color: theme.primary }}>This month</ThemedText><ThemedText style={styles.summaryNumber}>{dollars(totalSpent)}</ThemedText><ThemedText type="small" style={{ color: theme.primaryMuted }}>of {dollars(totalLimit)} budgeted</ThemedText></View><View style={[styles.ring, { borderColor: theme.primary }]}><ThemedText style={styles.ringText}>{Math.round(fraction * 100)}%</ThemedText></View><View style={[styles.summaryFooter, { borderTopColor: theme.border }]}><ThemedText type="small" style={{ color: theme.primaryMuted }}>{dollars(totalLimit - totalSpent)} remaining</ThemedText></View></View>
+      <View style={[styles.grid, desktop && styles.gridDesktop]}><View style={styles.budgetList}>{budgets?.map((budget) => { const insight = insightFor(budget.categoryId); const spent = insight?.spentCents ?? 0; const pct = budget.limitCents ? Math.min(spent / budget.limitCents, 1) : 0; return <Pressable key={budget.id} onPress={() => pick(budget.categoryId)} style={({ pressed }) => [styles.budgetCard, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && styles.pressed]}><View style={[styles.categoryIcon, { backgroundColor: CategoryColors[budget.categoryId] ?? CategoryColors[10] }]}><ThemedText style={{ color: theme.primaryStrong, fontWeight: '800' }}>{CATEGORY_NAMES[budget.categoryId].slice(0,1)}</ThemedText></View><View style={styles.budgetCopy}><ThemedText type="smallBold">{CATEGORY_NAMES[budget.categoryId]}</ThemedText><ThemedText type="small">{dollars(spent)} of {dollars(budget.limitCents)}</ThemedText><View style={[styles.track, { backgroundColor: theme.track }]}><View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: theme.primary }]} /></View></View><View style={styles.budgetRight}><ThemedText type="smallBold">{dollars(budget.limitCents - spent)}</ThemedText><ThemedText type="small">remaining</ThemedText><ThemedText type="small">{Math.round(pct * 100)}%</ThemedText></View></Pressable>; })}</View>
+      <View style={[styles.editorPanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>{!showEditor ? <Pressable onPress={() => setShowEditor(true)} style={[styles.outlineButton, { borderColor: theme.primary }]}><ThemedText style={{ color: theme.primary, fontWeight: '700' }}>＋ Add Budget</ThemedText></Pressable> : <><View style={styles.editorHeader}><ThemedText style={styles.sectionTitle}>{categoryId && existingFor(categoryId) ? 'Update Budget' : 'Add Budget'}</ThemedText><Pressable onPress={() => { setShowEditor(false); setCategoryId(null); }}><ThemedText>×</ThemedText></Pressable></View><View style={styles.chips}>{Object.entries(CATEGORY_NAMES).map(([id, name]) => { const selected = categoryId === Number(id); return <Pressable key={id} onPress={() => pick(Number(id))} style={[styles.chip, { borderColor: selected ? theme.primary : theme.border, backgroundColor: selected ? theme.backgroundSelected : theme.background }]}><ThemedText type="small">{name}{existingFor(Number(id)) ? ` · ${dollars(existingFor(Number(id))!.limitCents)}` : ''}</ThemedText></Pressable>; })}</View>{categoryId ? <><TextInput value={limit} onChangeText={setLimit} keyboardType="decimal-pad" placeholder="Monthly limit" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]} /><Pressable disabled={saving} onPress={save} style={[styles.primaryButton, { backgroundColor: theme.primary }]}>{saving ? <ActivityIndicator color={theme.primaryStrong} /> : <ThemedText style={{ color: theme.primaryStrong, fontWeight: '800' }}>{existingFor(categoryId) ? 'Replace Budget' : 'Set Budget'}</ThemedText>}</Pressable></> : null}</>}</View></View>
+      {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}{saved ? <ThemedText style={{ color: theme.success }}>{saved}</ThemedText> : null}
+    </>}
+  </ScrollView></ThemedView>;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: Spacing.four,
-  },
-  monthSwitcher: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.three,
-    width: '100%',
-    maxWidth: 980,
-    alignSelf: 'center',
-  },
-  headingCopy: { flex: 1, alignItems: 'center' }, title: { ...Type.title }, chevron: { ...Type.title },
-  list: {
-    width: '100%',
-    maxWidth: 980,
-    alignSelf: 'center',
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-    paddingBottom: Spacing.four,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  editorCard: { padding: Spacing.four, borderRadius: Radii.card, gap: Spacing.three }, sectionTitle: { ...Type.heading },
-  editor: {
-    gap: Spacing.three,
-    paddingTop: Spacing.two,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: Radii.input,
-    minHeight: Layout.controlHeight,
-    paddingHorizontal: Spacing.three,
-    ...Type.body,
-  },
-  hint: {
-    opacity: 0.7,
-  },
-});
+const styles = StyleSheet.create({ root: { flex: 1 }, content: { width: '100%', maxWidth: 1040, alignSelf: 'center', padding: Spacing.four, gap: Spacing.three }, webContent: { padding: Spacing.lg }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.three }, title: { ...Type.title }, monthNav: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two }, chevron: { fontSize: 28 }, summary: { borderWidth: 1, borderRadius: Radii.card, padding: Spacing.four, minHeight: 156, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: Spacing.three }, summaryNumber: { ...Type.title, color: '#FFFFFF', fontVariant: ['tabular-nums'] }, ring: { width: 68, height: 68, borderRadius: 34, borderWidth: 7, alignItems: 'center', justifyContent: 'center' }, ringText: { color: '#FFFFFF', fontWeight: '800' }, summaryFooter: { width: '100%', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.two }, grid: { gap: Spacing.three }, gridDesktop: { flexDirection: 'row', alignItems: 'flex-start' }, budgetList: { flex: 1.3, gap: Spacing.two }, budgetCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Radii.card, padding: Spacing.three }, categoryIcon: { width: 46, height: 46, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' }, budgetCopy: { flex: 1, gap: Spacing.one }, budgetRight: { alignItems: 'flex-end' }, track: { height: 7, borderRadius: Radii.pill, overflow: 'hidden' }, fill: { height: '100%' }, editorPanel: { flex: 1, borderWidth: 1, borderRadius: Radii.card, padding: Spacing.three, gap: Spacing.three }, outlineButton: { minHeight: Layout.controlHeight, borderWidth: 1, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' }, editorHeader: { flexDirection: 'row', justifyContent: 'space-between' }, sectionTitle: { ...Type.heading, fontSize: 19 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }, chip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.two, borderWidth: 1, borderRadius: Radii.pill }, input: { minHeight: Layout.controlHeight, borderWidth: 1, borderRadius: Radii.input, paddingHorizontal: Spacing.three, ...Type.body }, primaryButton: { minHeight: Layout.controlHeight, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' }, pressed: { opacity: 0.7 } });
