@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { onAuthStateChanged, signInWithEmailAndPassword, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, type User } from 'firebase/auth';
 
 import MainTabs from '@/components/main-tabs';
 import { ThemedText } from '@/components/themed-text';
@@ -24,6 +24,7 @@ export default function HomeScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [authMode, setAuthMode] = useState<'signIn' | 'signUp'>('signIn');
 
   // Wake the sleeping Render dyno the moment the app opens - by the time
   // the user finishes typing their password, the server is warm.
@@ -58,11 +59,15 @@ export default function HomeScreen() {
     setError('');
     setBusy(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (authMode === 'signUp') {
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+      } else {
+        await signInWithEmailAndPassword(auth, email.trim(), password);
+      }
     } catch {
       // One vague message on purpose - never reveal whether the email exists
       // (same philosophy as the API's 404-not-403).
-      setError('Wrong email or password');
+      setError(authMode === 'signUp' ? 'Could not create your account' : 'Wrong email or password');
     } finally {
       setBusy(false);
     }
@@ -101,9 +106,11 @@ export default function HomeScreen() {
         />
         {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
         <Pressable disabled={busy} onPress={handleSignIn} style={({ pressed }) => [styles.button, { backgroundColor: theme.primary }, pressed && styles.pressed]}>
-          {busy ? <ActivityIndicator color={theme.primaryStrong} /> : <ThemedText style={[styles.buttonText, { color: theme.primaryStrong }]}>Sign In  →</ThemedText>}
+          {busy ? <ActivityIndicator color={theme.primaryStrong} /> : <ThemedText style={[styles.buttonText, { color: theme.primaryStrong }]}>{authMode === 'signUp' ? 'Create Account' : 'Sign In'}  →</ThemedText>}
         </Pressable>
-        <ThemedText style={styles.create}>New to Guardian? <ThemedText style={{ color: theme.primary, fontWeight: '800' }}>Create an account</ThemedText></ThemedText>
+        <Pressable onPress={() => { setAuthMode((mode) => mode === 'signIn' ? 'signUp' : 'signIn'); setError(''); }} style={({ pressed }) => pressed && styles.pressed}>
+          <ThemedText style={styles.create}>{authMode === 'signIn' ? 'New to Guardian? ' : 'Already have an account? '}<ThemedText style={{ color: theme.primary, fontWeight: '800' }}>{authMode === 'signIn' ? 'Create an account' : 'Sign in'}</ThemedText></ThemedText>
+        </Pressable>
         </View>
         <View style={[styles.wake, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <ThemedText style={{ color: theme.primary, fontSize: 24 }}>⌛</ThemedText>
