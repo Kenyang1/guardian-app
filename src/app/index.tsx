@@ -99,7 +99,7 @@ export default function HomeScreen() {
           onChangeText={setPassword}
           style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
         />
-        {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
+        {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
         <Pressable disabled={busy} onPress={handleSignIn} style={({ pressed }) => [styles.button, { backgroundColor: theme.primary }, pressed && styles.pressed]}>
           {busy ? <ActivityIndicator color={theme.primaryStrong} /> : <ThemedText style={[styles.buttonText, { color: theme.primaryStrong }]}>Sign In  →</ThemedText>}
         </Pressable>
@@ -146,5 +146,4 @@ const styles = StyleSheet.create({
   create: { ...Type.body, textAlign: 'center' },
   wake: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Radii.pill, padding: Spacing.three },
   wakeText: { ...Type.label, flex: 1 },
-  error: { color: '#FFB4AB' },
 });

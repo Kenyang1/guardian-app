@@ -200,7 +200,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#999',
   },
   note: { minHeight: 96, paddingTop: Spacing.three, textAlignVertical: 'top' },
   hintBox: { borderWidth: 1, borderRadius: Radii.input, padding: Spacing.three },

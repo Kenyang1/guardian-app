@@ -105,7 +105,7 @@ export default function Viewers() {
         <View style={styles.sharedHeader}>
           <Button title="< Back" onPress={() => setViewing(null)} />
           <View style={[styles.readOnlyBadge, { backgroundColor: theme.warning }]}>
-            <ThemedText type="smallBold" style={styles.readOnlyText}>
+            <ThemedText type="smallBold" style={{ color: theme.primaryStrong }}>
               READ ONLY
             </ThemedText>
           </View>
@@ -297,9 +297,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-  },
-  readOnlyText: {
-    color: '#fff',
   },
   sharedTitle: {
     paddingHorizontal: Spacing.four,
