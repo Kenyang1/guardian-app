@@ -11,6 +11,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { wakeServer } from '@/lib/api';
 import { auth } from '@/lib/firebase';
 
 /**
@@ -25,6 +26,12 @@ export default function HomeScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Wake the sleeping Render dyno the moment the app opens - by the time
+  // the user finishes typing their password, the server is warm.
+  useEffect(() => {
+    wakeServer();
+  }, []);
 
   // Fires once on startup (restoring a persisted session from AsyncStorage)
   // and again after every sign-in / sign-out.
