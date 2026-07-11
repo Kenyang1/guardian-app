@@ -173,11 +173,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   form: {
+    width: '100%',
+    maxWidth: 680,
+    alignSelf: 'center',
     padding: Spacing.four,
     gap: Spacing.four,
   },
   hero: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.four }, amountLabel: { ...Type.heading }, amountRow: { flexDirection: 'row', alignItems: 'center' }, currency: { ...Type.display }, amountInput: { ...Type.display, minWidth: 180, textAlign: 'center' },
-  card: { borderRadius: Radii.card, padding: Spacing.four, gap: Spacing.three }, label: { ...Type.heading, fontSize: 20 },
+  card: { borderRadius: Radii.large, padding: Spacing.four, gap: Spacing.three }, label: { ...Type.heading, fontSize: 18 },
   input: {
     borderWidth: 1,
     borderRadius: Radii.input,

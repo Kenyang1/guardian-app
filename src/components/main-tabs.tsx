@@ -1,88 +1,29 @@
 import { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import AddTransaction from '@/components/add-transaction';
 import Budgets from '@/components/budgets';
 import Dashboard from '@/components/dashboard';
+import Profile from '@/components/profile';
 import Viewers from '@/components/viewers';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Layout, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Signed-in shell: a simple bottom tab bar switching between the app's
- * screens. Budgets and Viewers are placeholders until their screens land.
- */
-
-const TABS = ['Dashboard', 'Add', 'Budgets', 'Viewers'] as const;
+const TABS = ['Dashboard', 'Add', 'Budgets', 'Viewers', 'Profile'] as const;
 type Tab = (typeof TABS)[number];
-const TAB_META: Record<Tab, { icon: string; label: string }> = {
-  Dashboard: { icon: '⌂', label: 'Home' }, Add: { icon: '+', label: 'Add' }, Budgets: { icon: '▣', label: 'Budgets' }, Viewers: { icon: '♙', label: 'Viewers' },
-};
-
-function Placeholder({ name }: { name: string }) {
-  return (
-    <ThemedView style={styles.placeholder}>
-      <ThemedText type="subtitle">{name}</ThemedText>
-      <ThemedText>Coming next.</ThemedText>
-    </ThemedView>
-  );
-}
+const TAB_META: Record<Tab, { icon: string; label: string }> = { Dashboard: { icon: '⌂', label: 'Home' }, Add: { icon: '+', label: 'Add' }, Budgets: { icon: '▤', label: 'Budgets' }, Viewers: { icon: '♙', label: 'Viewers' }, Profile: { icon: '○', label: 'Profile' } };
 
 export default function MainTabs() {
-  const theme = useTheme();
-  const [tab, setTab] = useState<Tab>('Dashboard');
-
-  return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
-      <View style={styles.screen}>
-        {tab === 'Dashboard' ? (
-          <Dashboard />
-        ) : tab === 'Add' ? (
-          <AddTransaction />
-        ) : tab === 'Budgets' ? (
-          <Budgets />
-        ) : (
-          <Viewers />
-        )}
-      </View>
-      <View style={[styles.tabBar, { backgroundColor: theme.tabBar, borderTopColor: theme.border }]}>
-        {TABS.map((t) => (
-          <TouchableOpacity key={t} style={styles.tabButton} onPress={() => setTab(t)}>
-            <View style={[styles.iconWrap, t === 'Add' && { backgroundColor: theme.primary }, tab === t && t !== 'Add' && { backgroundColor: theme.primaryStrong }]}><ThemedText style={[styles.icon, { color: tab === t ? (t === 'Add' ? theme.primaryStrong : theme.primary) : theme.textSecondary }]}>{TAB_META[t].icon}</ThemedText></View>
-            <ThemedText type={tab === t ? 'smallBold' : 'small'} style={{ color: tab === t ? theme.primary : theme.textSecondary }}>{TAB_META[t].label}</ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
-  );
+  const theme = useTheme(); const { width } = useWindowDimensions(); const desktop = width >= 900; const [tab, setTab] = useState<Tab>('Dashboard');
+  const screen = tab === 'Dashboard' ? <Dashboard /> : tab === 'Add' ? <AddTransaction /> : tab === 'Budgets' ? <Budgets /> : tab === 'Viewers' ? <Viewers /> : <Profile />;
+  return <SafeAreaView style={[styles.root, desktop && styles.desktopRoot]} edges={['bottom']}>
+    {desktop ? <View style={[styles.sidebar, { backgroundColor: theme.tabBar, borderRightColor: theme.border }]}><ThemedText style={[styles.logo, { color: theme.primary }]}>Guardian</ThemedText><Nav theme={theme} tab={tab} setTab={setTab} desktop /></View> : null}
+    <View style={styles.screen}>{screen}</View>
+    {!desktop ? <View style={[styles.tabBar, { backgroundColor: theme.tabBar, borderTopColor: theme.border }]}><Nav theme={theme} tab={tab} setTab={setTab} /></View> : null}
+  </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  screen: {
-    flex: 1,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    minHeight: Layout.tabHeight,
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-    gap: Spacing.one,
-  },
-  iconWrap: { width: 38, height: 34, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' }, icon: { fontSize: 24, lineHeight: 28, fontWeight: '800' },
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-});
+function Nav({ theme, tab, setTab, desktop = false }: { theme: ReturnType<typeof useTheme>; tab: Tab; setTab: (tab: Tab) => void; desktop?: boolean }) { return <>{TABS.map((item) => { const selected = tab === item; return <Pressable key={item} onPress={() => setTab(item)} style={({ pressed }) => [styles.tabButton, desktop && styles.desktopButton, selected && { backgroundColor: theme.backgroundSelected }, pressed && styles.pressed]}><View style={[styles.iconWrap, item === 'Add' && { backgroundColor: theme.primary }]}><ThemedText style={[styles.icon, { color: selected ? (item === 'Add' ? theme.primaryStrong : theme.primary) : theme.textSecondary }]}>{TAB_META[item].icon}</ThemedText></View><ThemedText type={selected ? 'smallBold' : 'small'} style={{ color: selected ? theme.primary : theme.textSecondary }}>{TAB_META[item].label}</ThemedText></Pressable>; })}</>; }
+
+const styles = StyleSheet.create({ root: { flex: 1 }, desktopRoot: { flexDirection: 'row' }, screen: { flex: 1 }, sidebar: { width: 220, borderRightWidth: StyleSheet.hairlineWidth, padding: Spacing.four, gap: Spacing.two }, logo: { fontSize: 24, fontWeight: '800', paddingBottom: Spacing.four }, tabBar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, minHeight: Layout.tabHeight }, tabButton: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.two, gap: Spacing.one, borderRadius: Radii.input }, desktopButton: { flex: 0, minHeight: 54, flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: Spacing.three, gap: Spacing.three }, iconWrap: { width: 34, height: 32, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' }, icon: { fontSize: 22, lineHeight: 26, fontWeight: '800' }, pressed: { opacity: 0.68 } });

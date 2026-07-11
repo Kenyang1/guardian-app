@@ -247,6 +247,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.four,
   },
   list: {
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
     paddingHorizontal: Spacing.four,
     gap: Spacing.three,
     paddingBottom: Spacing.four,

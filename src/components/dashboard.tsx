@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Button, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { signOut } from 'firebase/auth';
-
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CategoryColors, Radii, Spacing, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, getMonthlyInsights } from '@/lib/api';
-import { auth } from '@/lib/firebase';
 import type { InsightRow } from '@/schemas/budget';
 
 const dollars = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -15,65 +12,23 @@ export function currentMonth(): string { const now = new Date(); return `${now.g
 export function shiftMonth(month: string, delta: number): string { const [y, m] = month.split('-').map(Number); const d = new Date(y, m - 1 + delta, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
 const monthLabel = (month: string) => { const [y, m] = month.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
 
-export function CategoryRow({ row }: { row: InsightRow }) {
-  const theme = useTheme();
-  const over = row.remainingCents < 0;
-  const fraction = row.limitCents > 0 ? Math.min(row.spentCents / row.limitCents, 1) : 1;
-  const barColor = over ? theme.danger : CategoryColors[row.categoryId] ?? CategoryColors[10];
-  return (
-    <View style={[styles.row, { backgroundColor: theme.surface, borderColor: over ? theme.danger : theme.border }]}>
-      <View style={styles.rowHeader}>
-        <View style={styles.categoryCopy}>
-          <ThemedText style={styles.categoryName}>{row.categoryName}</ThemedText>
-          <ThemedText type="small">{dollars(row.spentCents)} of {dollars(row.limitCents)} spent</ThemedText>
-        </View>
-        <ThemedText style={[styles.remaining, { color: over ? theme.danger : theme.primary }]}>
-          {over ? `-${dollars(-row.remainingCents)}` : dollars(row.remainingCents)}{`\n`}<ThemedText type="small">{over ? 'over' : 'left'}</ThemedText>
-        </ThemedText>
-      </View>
-      <View style={[styles.barTrack, { backgroundColor: theme.track }]}><View style={[styles.barFill, { width: `${fraction * 100}%`, backgroundColor: barColor }]} /></View>
-      {over ? <ThemedText style={[styles.warning, { color: theme.danger }]}>⚠ You’ve exceeded this budget.</ThemedText> : null}
-    </View>
-  );
-}
+export function CategoryRow({ row, compact = false }: { row: InsightRow; compact?: boolean }) { const theme = useTheme(); const over = row.remainingCents < 0; const fraction = row.limitCents > 0 ? Math.min(row.spentCents / row.limitCents, 1) : 1; return <View style={[styles.row, compact && styles.compactRow, { backgroundColor: theme.surface, borderColor: over ? theme.danger : theme.border }]}><View style={styles.rowHeader}><View style={[styles.categoryIcon, { backgroundColor: CategoryColors[row.categoryId] ?? CategoryColors[10] }]}><ThemedText style={{ color: theme.primaryStrong, fontWeight: '800' }}>{row.categoryName.slice(0, 1)}</ThemedText></View><View style={styles.categoryCopy}><ThemedText style={styles.categoryName}>{row.categoryName}</ThemedText><ThemedText type="small">{dollars(row.spentCents)} of {dollars(row.limitCents)}</ThemedText></View><ThemedText style={[styles.remaining, { color: over ? theme.danger : theme.primary }]}>{over ? `-${dollars(-row.remainingCents)}` : dollars(row.remainingCents)}{`\n`}<ThemedText type="small">{over ? 'over' : 'left'}</ThemedText></ThemedText></View><View style={[styles.track, { backgroundColor: theme.track }]}><View style={[styles.fill, { width: `${fraction * 100}%`, backgroundColor: over ? theme.danger : theme.primary }]} /></View>{over ? <ThemedText type="small" style={{ color: theme.danger }}>Over budget</ThemedText> : null}</View>; }
 
 export default function Dashboard() {
-  const theme = useTheme();
-  const [month, setMonth] = useState(currentMonth());
-  const [rows, setRows] = useState<InsightRow[] | null>(null);
-  const [error, setError] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const theme = useTheme(); const { width } = useWindowDimensions(); const desktop = width >= 900;
+  const [month, setMonth] = useState(currentMonth()); const [rows, setRows] = useState<InsightRow[] | null>(null); const [error, setError] = useState(''); const [refreshing, setRefreshing] = useState(false); const [showAll, setShowAll] = useState(false);
   const load = useCallback(async () => { setError(''); try { const result = await getMonthlyInsights(month); setRows(result.categories); } catch (e) { setRows(null); setError(e instanceof ApiError ? e.message : 'Could not reach the server'); } }, [month]);
-  useEffect(() => { setRows(null); load(); }, [load]);
-  const onRefresh = useCallback(async () => { setRefreshing(true); await load(); setRefreshing(false); }, [load]);
-  const totalRemaining = rows?.reduce((sum, row) => sum + row.remainingCents, 0) ?? 0;
-  return (
-    <ThemedView style={styles.container}>
-      <View style={styles.topBar}><ThemedText style={styles.brand}>Guardian</ThemedText><Button title="Sign out" onPress={() => signOut(auth)} /></View>
-      <View style={styles.monthSwitcher}>
-        <TouchableOpacity onPress={() => setMonth((m) => shiftMonth(m, -1))} hitSlop={12}><ThemedText style={styles.chevron}>‹</ThemedText></TouchableOpacity>
-        <View style={styles.monthCopy}><ThemedText style={[styles.month, { color: theme.primary }]}>{monthLabel(month)}</ThemedText><ThemedText style={styles.activeBudget}>ACTIVE BUDGET</ThemedText></View>
-        <TouchableOpacity onPress={() => setMonth((m) => shiftMonth(m, 1))} hitSlop={12}><ThemedText style={styles.chevron}>›</ThemedText></TouchableOpacity>
-      </View>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        {!error && rows && rows.length > 0 ? <><View style={[styles.summary, { backgroundColor: theme.surface }]}><ThemedText type="smallBold">Total Remaining</ThemedText><ThemedText style={[styles.total, { color: totalRemaining < 0 ? theme.danger : theme.primary }]}>{dollars(totalRemaining)}</ThemedText></View><ThemedText style={[styles.sectionTitle, { color: theme.primary }]}>Expense Categories</ThemedText></> : null}
-        {error ? <View style={styles.centerBlock}><ThemedText style={{ color: theme.danger }}>{error}</ThemedText><Button title="Try again" onPress={load} /></View> : rows === null ? <View style={styles.centerBlock}><ActivityIndicator /></View> : rows.length === 0 ? <View style={styles.centerBlock}><ThemedText type="subtitle">No budgets for {monthLabel(month)}</ThemedText><ThemedText>Set one on the Budgets screen to see your progress here.</ThemedText></View> : rows.map((row) => <CategoryRow key={row.categoryId} row={row} />)}
-      </ScrollView>
-    </ThemedView>
-  );
+  useEffect(() => { setRows(null); setShowAll(false); load(); }, [load]); const onRefresh = useCallback(async () => { setRefreshing(true); await load(); setRefreshing(false); }, [load]);
+  const remaining = rows?.reduce((sum, row) => sum + row.remainingCents, 0) ?? 0; const limit = rows?.reduce((sum, row) => sum + row.limitCents, 0) ?? 0; const spent = rows?.reduce((sum, row) => sum + row.spentCents, 0) ?? 0; const now = new Date(); const daysLeft = Math.max(1, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1); const visibleRows = showAll ? rows : rows?.slice(0, 3);
+  return <ThemedView style={styles.root}><ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.content, desktop && styles.desktopContent]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <View style={styles.header}><View><ThemedText style={[styles.brand, { color: theme.primary }]}>Guardian</ThemedText><ThemedText type="small">Your monthly overview</ThemedText></View><View style={styles.month}><Pressable onPress={() => setMonth((m) => shiftMonth(m, -1))}><ThemedText style={styles.arrow}>‹</ThemedText></Pressable><ThemedText type="smallBold">{monthLabel(month)}</ThemedText><Pressable onPress={() => setMonth((m) => shiftMonth(m, 1))}><ThemedText style={styles.arrow}>›</ThemedText></Pressable></View></View>
+    {error ? <View style={styles.center}><ThemedText style={{ color: theme.danger }}>{error}</ThemedText><Pressable onPress={load}><ThemedText style={{ color: theme.primary }}>Try again</ThemedText></Pressable></View> : rows === null ? <View style={styles.center}><ActivityIndicator /></View> : rows.length === 0 ? <View style={styles.center}><ThemedText style={styles.sectionTitle}>No budgets yet</ThemedText><ThemedText>Set a budget to see your monthly overview.</ThemedText></View> : <>
+      <View style={[styles.summary, { backgroundColor: theme.primaryStrong }]}><ThemedText style={{ color: theme.primary }}>Safe to spend</ThemedText><ThemedText style={[styles.heroNumber, { color: theme.white }]}>{dollars(Math.trunc(remaining / daysLeft))}<ThemedText style={{ fontSize: 16 }}>/day</ThemedText></ThemedText><ThemedText type="small" style={{ color: theme.primaryMuted }}>{dollars(remaining)} remaining this month</ThemedText></View>
+      <View style={[styles.monthly, { backgroundColor: theme.surface, borderColor: theme.border }]}><View style={styles.rowHeader}><View><ThemedText type="smallBold">This month</ThemedText><ThemedText style={styles.sectionTitle}>{dollars(spent)} <ThemedText type="small">of {dollars(limit)}</ThemedText></ThemedText></View><ThemedText type="smallBold">{limit ? Math.round((spent / limit) * 100) : 0}%</ThemedText></View><View style={[styles.track, { backgroundColor: theme.track }]}><View style={[styles.fill, { width: `${limit ? Math.min(spent / limit, 1) * 100 : 0}%`, backgroundColor: spent > limit ? theme.danger : theme.primary }]} /></View></View>
+      <View style={[styles.dashboardGrid, desktop && styles.dashboardGridDesktop]}><View style={styles.gridColumn}><View style={styles.sectionHeader}><ThemedText style={styles.sectionTitle}>Spending</ThemedText>{rows.length > 3 ? <Pressable onPress={() => setShowAll((value) => !value)}><ThemedText type="smallBold" style={{ color: theme.primary }}>{showAll ? 'Show less' : 'View all'}</ThemedText></Pressable> : null}</View>{visibleRows?.map((row) => <CategoryRow key={row.categoryId} row={row} compact />)}</View>
+      <View style={styles.gridColumn}><ThemedText style={styles.sectionTitle}>Recent</ThemedText><View style={[styles.placeholderCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><ThemedText style={styles.placeholderIcon}>↗</ThemedText><View style={{ flex: 1 }}><ThemedText type="smallBold">Recent transactions</ThemedText><ThemedText type="small">Transaction history will appear here when it is available.</ThemedText></View></View><ThemedText style={styles.sectionTitle}>Savings goal</ThemedText><View style={[styles.placeholderCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><ThemedText style={styles.placeholderIcon}>◎</ThemedText><View style={{ flex: 1 }}><ThemedText type="smallBold">No savings goal yet</ThemedText><ThemedText type="small">Savings goals are not connected to your account yet.</ThemedText></View></View></View></View>
+    </>}
+  </ScrollView></ThemedView>;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: Spacing.three },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.four },
-  brand: { ...Type.title },
-  monthSwitcher: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },
-  chevron: { ...Type.title }, monthCopy: { alignItems: 'center' }, month: { ...Type.title }, activeBudget: { ...Type.caption, letterSpacing: 2 },
-  list: { paddingHorizontal: Spacing.four, gap: Spacing.four, paddingBottom: Spacing.four },
-  centerBlock: { alignItems: 'center', gap: Spacing.three, paddingTop: Spacing.four },
-  summary: { padding: Spacing.four, borderRadius: Radii.card, gap: Spacing.two }, total: { ...Type.display, fontVariant: ['tabular-nums'] }, sectionTitle: { ...Type.heading, paddingTop: Spacing.two },
-  row: { gap: Spacing.three, padding: Spacing.four, borderRadius: Radii.card, borderWidth: 1 },
-  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two }, categoryCopy: { flex: 1, gap: Spacing.one }, categoryName: { ...Type.heading },
-  barTrack: { height: 10, borderRadius: Radii.pill, overflow: 'hidden' }, barFill: { height: '100%', borderRadius: Radii.pill },
-  remaining: { ...Type.label, textAlign: 'right', fontVariant: ['tabular-nums'] }, warning: { ...Type.label },
-});
+const styles = StyleSheet.create({ root: { flex: 1 }, content: { width: '100%', maxWidth: 1180, alignSelf: 'center', padding: Spacing.four, gap: Spacing.three }, desktopContent: { padding: Spacing.lg }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.three }, brand: { ...Type.title }, month: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two }, arrow: { fontSize: 28, lineHeight: 32 }, center: { alignItems: 'center', padding: Spacing.lg, gap: Spacing.three }, summary: { borderRadius: Radii.card, padding: Spacing.four, gap: Spacing.one }, heroNumber: { ...Type.display, fontVariant: ['tabular-nums'] }, monthly: { borderWidth: 1, borderRadius: Radii.card, padding: Spacing.three, gap: Spacing.three }, dashboardGrid: { gap: Spacing.three }, dashboardGridDesktop: { flexDirection: 'row', alignItems: 'flex-start' }, gridColumn: { flex: 1, gap: Spacing.two }, sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, sectionTitle: { ...Type.heading, fontSize: 19 }, row: { borderWidth: 1, borderRadius: Radii.card, padding: Spacing.three, gap: Spacing.two }, compactRow: { borderRadius: Radii.input }, rowHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two }, categoryIcon: { width: 38, height: 38, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' }, categoryCopy: { flex: 1 }, categoryName: { fontSize: 16, lineHeight: 22, fontWeight: '700' }, remaining: { ...Type.label, textAlign: 'right', fontVariant: ['tabular-nums'] }, track: { height: 7, borderRadius: Radii.pill, overflow: 'hidden' }, fill: { height: '100%', borderRadius: Radii.pill }, placeholderCard: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center', borderWidth: 1, borderRadius: Radii.card, padding: Spacing.three }, placeholderIcon: { fontSize: 24 } });
