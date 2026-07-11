@@ -7,8 +7,8 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
+  // useColorScheme can return null/undefined while the scheme is unknown.
+  const scheme = useColorScheme() ?? 'light';
 
-  return Colors[theme];
+  return Colors[scheme];
 }

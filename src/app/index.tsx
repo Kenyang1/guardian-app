@@ -3,7 +3,7 @@ import { ActivityIndicator, Button, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { onAuthStateChanged, signInWithEmailAndPassword, type User } from 'firebase/auth';
 
-import Dashboard from '@/components/dashboard';
+import MainTabs from '@/components/main-tabs';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -49,7 +49,7 @@ export default function HomeScreen() {
   }
 
   if (user) {
-    return <Dashboard />;
+    return <MainTabs />;
   }
 
   const handleSignIn = async () => {
