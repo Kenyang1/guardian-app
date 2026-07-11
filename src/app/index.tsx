@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Button, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-  type User,
-} from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, type User } from 'firebase/auth';
 
+import Dashboard from '@/components/dashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -53,15 +49,7 @@ export default function HomeScreen() {
   }
 
   if (user) {
-    // Checkpoint: prove we can mint the same ID token our curls have used.
-    user.getIdToken().then((t) => console.log('ID TOKEN:', t.slice(0, 40) + '...'));
-    return (
-      <ThemedView style={styles.center}>
-        <ThemedText type="title">Guardian</ThemedText>
-        <ThemedText>Signed in as {user.email}</ThemedText>
-        <Button title="Sign out" onPress={() => signOut(auth)} />
-      </ThemedView>
-    );
+    return <Dashboard />;
   }
 
   const handleSignIn = async () => {
