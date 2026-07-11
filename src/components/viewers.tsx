@@ -12,7 +12,8 @@ import {
 import { CategoryRow, currentMonth } from '@/components/dashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Layout, Radii, Spacing, Type } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import {
   acceptInvite,
   ApiError,
@@ -37,13 +38,9 @@ import type { Viewer } from '@/schemas/viewer';
  * RN's Alert buttons don't work on web.
  */
 
-const STATUS_COLORS: Record<Viewer['status'], string> = {
-  pending: '#C99A2E',
-  accepted: '#2E8B57',
-  revoked: '#9AA0A6',
-};
-
 export default function Viewers() {
+  const theme = useTheme();
+  const statusColors: Record<Viewer['status'], string> = { pending: theme.warning, accepted: theme.success, revoked: theme.textSecondary };
   const [mine, setMine] = useState<Viewer[] | null>(null);
   const [sharedWithMe, setSharedWithMe] = useState<Viewer[] | null>(null);
   const [error, setError] = useState('');
@@ -107,13 +104,13 @@ export default function Viewers() {
       <ThemedView style={styles.container}>
         <View style={styles.sharedHeader}>
           <Button title="< Back" onPress={() => setViewing(null)} />
-          <View style={styles.readOnlyBadge}>
+          <View style={[styles.readOnlyBadge, { backgroundColor: theme.warning }]}>
             <ThemedText type="smallBold" style={styles.readOnlyText}>
               READ ONLY
             </ThemedText>
           </View>
         </View>
-        <ThemedText style={styles.sharedTitle}>
+        <ThemedText style={[styles.sharedTitle, { color: theme.primary }]}>
           Viewing a shared budget - you can look, not touch.
         </ThemedText>
         <ScrollView contentContainerStyle={styles.list}>
@@ -131,17 +128,20 @@ export default function Viewers() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-        <ThemedText type="title">Trusted viewers</ThemedText>
+        <ThemedText style={[styles.title, { color: theme.primary }]}>Trusted Viewers</ThemedText>
+        <ThemedText style={styles.subtitle}>Securely share your financial journey with those you trust most.</ThemedText>
 
-        <ThemedText type="smallBold">Invite someone to view your budget</ThemedText>
+        <View style={[styles.inviteCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><ThemedText style={styles.sectionTitle}>Invite by Email</ThemedText>
         <TextInput
           placeholder="their-email@example.com"
           autoCapitalize="none"
           keyboardType="email-address"
           value={inviteEmail}
           onChangeText={setInviteEmail}
-          style={styles.input}
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
         />
+        <ThemedText type="small" style={styles.hint}>Invited users can only view your spending; they cannot edit transactions.</ThemedText></View>
         <Button
           title="Send invite"
           onPress={() =>
@@ -156,12 +156,12 @@ export default function Viewers() {
           <ActivityIndicator />
         ) : mine.length > 0 ? (
           <View style={styles.section}>
-            <ThemedText type="smallBold">People I invited</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: theme.primary }]}>My Trusted Viewers</ThemedText>
             {mine.map((v) => (
-              <View key={v.id} style={styles.viewerRow}>
+              <View key={v.id} style={[styles.viewerRow, { backgroundColor: theme.surface }]}>
                 <View style={styles.viewerInfo}>
                   <ThemedText>{v.viewerEmail}</ThemedText>
-                  <ThemedText type="small" style={{ color: STATUS_COLORS[v.status] }}>
+                  <ThemedText type="small" style={{ color: statusColors[v.status] }}>
                     {v.status}
                     {v.status === 'pending' ? ` - code: ${v.id.slice(0, 8)}...` : ''}
                   </ThemedText>
@@ -175,7 +175,7 @@ export default function Viewers() {
                   confirmingId === v.id ? (
                     <Button
                       title="Confirm revoke"
-                      color="#D64545"
+                      color={theme.danger}
                       onPress={() => {
                         setConfirmingId(null);
                         run(() => revokeViewer(v.id), `Revoked ${v.viewerEmail}`);
@@ -197,7 +197,8 @@ export default function Viewers() {
             autoCapitalize="none"
             value={inviteCode}
             onChangeText={setInviteCode}
-            style={styles.input}
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
           />
           <Button
             title="Accept invite"
@@ -211,7 +212,7 @@ export default function Viewers() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="smallBold">Shared with me</ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: theme.primary }]}>Shared with Me</ThemedText>
           {sharedWithMe === null ? (
             <ActivityIndicator />
           ) : sharedWithMe.length === 0 ? (
@@ -222,7 +223,7 @@ export default function Viewers() {
             sharedWithMe.map((v) => (
               <TouchableOpacity
                 key={v.id}
-                style={styles.sharedRow}
+                style={[styles.sharedRow, { backgroundColor: theme.surface }]}
                 onPress={() => openShared(v.ownerUid)}
               >
                 <ThemedText>Budget shared by {v.ownerUid.slice(0, 10)}...</ThemedText>
@@ -233,8 +234,8 @@ export default function Viewers() {
         </View>
 
         {busy ? <ActivityIndicator /> : null}
-        {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
-        {notice ? <ThemedText style={styles.success}>{notice}</ThemedText> : null}
+        {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
+        {notice ? <ThemedText style={{ color: theme.success }}>{notice}</ThemedText> : null}
       </ScrollView>
     </ThemedView>
   );
@@ -250,22 +251,26 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingBottom: Spacing.four,
   },
+  title: { ...Type.display }, subtitle: { ...Type.heading, fontSize: 20 }, sectionTitle: { ...Type.heading },
+  inviteCard: { borderWidth: 1, borderRadius: Radii.card, padding: Spacing.four, gap: Spacing.three },
   section: {
     gap: Spacing.two,
     paddingTop: Spacing.three,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: Radii.input,
+    minHeight: Layout.controlHeight,
+    paddingHorizontal: Spacing.three,
+    ...Type.body,
   },
   viewerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.two,
+    padding: Spacing.three,
+    borderRadius: Radii.card,
   },
   viewerInfo: {
     flex: 1,
@@ -279,6 +284,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radii.card,
   },
   sharedHeader: {
     flexDirection: 'row',
@@ -287,7 +294,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
   },
   readOnlyBadge: {
-    backgroundColor: '#C99A2E',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -299,12 +305,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
     opacity: 0.8,
-  },
-  error: {
-    color: '#D64545',
-  },
-  success: {
-    color: '#2E8B57',
   },
   hint: {
     opacity: 0.7,
