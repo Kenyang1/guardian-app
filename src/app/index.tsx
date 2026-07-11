@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, StyleSheet, TextInput } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { onAuthStateChanged, signInWithEmailAndPassword, type User } from 'firebase/auth';
 
 import MainTabs from '@/components/main-tabs';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Layout, Radii, Spacing, Type } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { wakeServer } from '@/lib/api';
 import { auth } from '@/lib/firebase';
 
@@ -16,6 +17,7 @@ import { auth } from '@/lib/firebase';
  * placeholder that the Dashboard will replace.
  */
 export default function HomeScreen() {
+  const theme = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState('');
@@ -68,32 +70,45 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.form}>
-        <ThemedText type="title" style={styles.title}>
-          Guardian
-        </ThemedText>
-        <TextInput
-          placeholder="Email"
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.brand}>
+          <ThemedText style={styles.wordmark}>Guardian</ThemedText>
+          <ThemedText style={[styles.tagline, { color: theme.primary }]}>Securing your financial growth</ThemedText>
+        </View>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <ThemedText style={styles.label}>Email Address</ThemedText>
+          <TextInput
+          placeholder="name@college.edu"
+          placeholderTextColor={theme.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
-          style={styles.input}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
         />
+        <View style={styles.passwordLabel}>
+          <ThemedText style={styles.label}>Password</ThemedText>
+          <ThemedText style={[styles.forgot, { color: theme.primary }]}>Forgot Password?</ThemedText>
+        </View>
         <TextInput
-          placeholder="Password"
+          placeholder="••••••••"
+          placeholderTextColor={theme.textSecondary}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          style={styles.input}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
         />
         {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
-        {busy ? (
-          <ActivityIndicator />
-        ) : (
-          <Button title="Sign in" onPress={handleSignIn} />
-        )}
+        <Pressable disabled={busy} onPress={handleSignIn} style={({ pressed }) => [styles.button, { backgroundColor: theme.primary }, pressed && styles.pressed]}>
+          {busy ? <ActivityIndicator color={theme.primaryStrong} /> : <ThemedText style={[styles.buttonText, { color: theme.primaryStrong }]}>Sign In  →</ThemedText>}
+        </Pressable>
+        <ThemedText style={styles.create}>New to Guardian? <ThemedText style={{ color: theme.primary, fontWeight: '800' }}>Create an account</ThemedText></ThemedText>
+        </View>
+        <View style={[styles.wake, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <ThemedText style={{ color: theme.primary, fontSize: 24 }}>⌛</ThemedText>
+          <ThemedText style={styles.wakeText}>Getting your vault ready… our servers are waking up (this might take a moment)</ThemedText>
+        </View>
       </SafeAreaView>
     </ThemedView>
   );
@@ -104,28 +119,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  safe: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: Spacing.four, gap: Spacing.lg },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.three,
   },
-  form: {
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: Spacing.three,
-  },
+  brand: { alignItems: 'center', gap: Spacing.three },
+  wordmark: { ...Type.title },
+  tagline: { ...Type.heading, textAlign: 'center' },
+  card: { borderWidth: 1, borderRadius: Radii.large, padding: Spacing.four, gap: Spacing.three },
+  label: { ...Type.heading, fontSize: 20 },
+  passwordLabel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  forgot: { ...Type.body, fontWeight: '800' },
   input: {
     borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: Radii.input,
+    minHeight: Layout.controlHeight,
+    paddingHorizontal: Spacing.three,
+    ...Type.body,
   },
-  error: {
-    color: '#d33',
-  },
+  button: { minHeight: Layout.controlHeight, borderRadius: Radii.input, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { ...Type.heading },
+  pressed: { opacity: 0.8 },
+  create: { ...Type.body, textAlign: 'center' },
+  wake: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Radii.pill, padding: Spacing.three },
+  wakeText: { ...Type.label, flex: 1 },
+  error: { color: '#FFB4AB' },
 });

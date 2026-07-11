@@ -55,7 +55,7 @@ const monthLabel = (month: string) => {
   return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 };
 
-function CategoryRow({ row }: { row: InsightRow }) {
+export function CategoryRow({ row }: { row: InsightRow }) {
   const over = row.remainingCents < 0;
   // Cap the bar at 100% - "spent 150% of budget" reads better as a full red bar.
   const fraction = row.limitCents > 0 ? Math.min(row.spentCents / row.limitCents, 1) : 1;

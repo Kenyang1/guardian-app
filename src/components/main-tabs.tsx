@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTransaction from '@/components/add-transaction';
 import Budgets from '@/components/budgets';
 import Dashboard from '@/components/dashboard';
+import Viewers from '@/components/viewers';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -39,7 +40,7 @@ export default function MainTabs() {
         ) : tab === 'Budgets' ? (
           <Budgets />
         ) : (
-          <Placeholder name="Trusted viewers" />
+          <Viewers />
         )}
       </View>
       <View style={styles.tabBar}>
