@@ -1,61 +1,104 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Button, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from 'firebase/auth';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { auth } from '@/lib/firebase';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
+/**
+ * Sign-in screen (Milestone 7, step 1). Deliberately plain - the styled
+ * version comes with the UI design pass. The signed-in state is a temporary
+ * placeholder that the Dashboard will replace.
+ */
+export default function HomeScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Fires once on startup (restoring a persisted session from AsyncStorage)
+  // and again after every sign-in / sign-out.
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setReady(true);
+      }),
+    [],
+  );
+
+  if (!ready) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <ThemedView style={styles.center}>
+        <ActivityIndicator />
+      </ThemedView>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
 
-export default function HomeScreen() {
+  if (user) {
+    // Checkpoint: prove we can mint the same ID token our curls have used.
+    user.getIdToken().then((t) => console.log('ID TOKEN:', t.slice(0, 40) + '...'));
+    return (
+      <ThemedView style={styles.center}>
+        <ThemedText type="title">Guardian</ThemedText>
+        <ThemedText>Signed in as {user.email}</ThemedText>
+        <Button title="Sign out" onPress={() => signOut(auth)} />
+      </ThemedView>
+    );
+  }
+
+  const handleSignIn = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch {
+      // One vague message on purpose - never reveal whether the email exists
+      // (same philosophy as the API's 404-not-403).
+      setError('Wrong email or password');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
+      <SafeAreaView style={styles.form}>
+        <ThemedText type="title" style={styles.title}>
+          Guardian
         </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
+        <TextInput
+          placeholder="Email"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+        />
+        {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
+        {busy ? (
+          <ActivityIndicator />
+        ) : (
+          <Button title="Sign in" onPress={handleSignIn} />
+        )}
       </SafeAreaView>
     </ThemedView>
   );
@@ -65,34 +108,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    flexDirection: 'row',
   },
-  safeArea: {
+  center: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
+    justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+  form: {
     paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: Spacing.three,
   },
   title: {
     textAlign: 'center',
+    marginBottom: Spacing.three,
   },
-  code: {
-    textTransform: 'uppercase',
+  input: {
+    borderWidth: 1,
+    borderColor: '#999',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  error: {
+    color: '#d33',
   },
 });
