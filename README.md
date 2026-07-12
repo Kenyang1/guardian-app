@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  Guardian API Doc: https://guardian-api-5up5.onrender.com/docs/#/ 
+</p>
+
+<p align="center">
   <a href="#current-project-status"><img alt="Project status: prototype" src="https://img.shields.io/badge/status-prototype-DDBB63?style=flat-square" /></a>
   <a href="https://expo.dev/"><img alt="Expo SDK 54" src="https://img.shields.io/badge/Expo_SDK-54-72E6B1?style=flat-square&logo=expo&logoColor=063F2F" /></a>
   <a href="https://reactnative.dev/"><img alt="React Native 0.81.5" src="https://img.shields.io/badge/React_Native-0.81.5-72E6B1?style=flat-square&logo=react&logoColor=063F2F" /></a>
