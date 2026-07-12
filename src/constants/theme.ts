@@ -66,6 +66,8 @@ export const Type = {
 
 export const Spacing = { half: 2, one: 4, two: 8, sm: 12, three: 16, four: 24, five: 32, lg: 48, six: 64, xl: 80 } as const;
 export const Radii = { small: 6, input: 10, card: 18, large: 24, pill: 999 } as const;
-export const Layout = { gutter: 24, maxContentWidth: 800, controlHeight: 56, tabHeight: 68 } as const;
+export const Shadows = { card: '0 12px 28px rgba(0,0,0,0.16)', floating: '0 24px 64px rgba(0,0,0,0.32)' } as const;
+export const Motion = { quick: 160, standard: 240, ambient: 14000 } as const;
+export const Layout = { gutter: 24, maxContentWidth: 1180, controlHeight: 56, tabHeight: 68, sidebarWidth: 220 } as const;
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = Layout.maxContentWidth;

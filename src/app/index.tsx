@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, type User } from 'firebase/auth';
 
 import MainTabs from '@/components/main-tabs';
+import { Brand } from '@/components/guardian-ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Layout, Radii, Spacing, Type } from '@/constants/theme';
@@ -77,7 +78,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.brand}>
-          <ThemedText style={styles.wordmark}>Guardian</ThemedText>
+          <Brand />
           <ThemedText style={[styles.tagline, { color: theme.primary }]}>Securing your financial growth</ThemedText>
         </View>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -134,7 +135,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   brand: { alignItems: 'center', gap: Spacing.three },
-  wordmark: { ...Type.title },
   tagline: { ...Type.heading, textAlign: 'center' },
   card: { borderWidth: 1, borderRadius: Radii.large, padding: Spacing.four, gap: Spacing.three },
   label: { ...Type.heading, fontSize: 20 },
